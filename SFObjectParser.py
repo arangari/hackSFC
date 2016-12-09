@@ -55,6 +55,10 @@ class CustomField:
             memberString  += "double " + self.FieldName + ";"
             return memberString;
 
+        if(type == 'ID') :
+            memberString  += "ID " + self.FieldName + ";"
+            return memberString;
+
         return ""
         #if(type == 'Lookup') :
         #    print 'lookup not supported yet'
@@ -66,12 +70,49 @@ class CustomField:
 
 class SFObject:
 
+    StandardFields = ["Id",
+                       "IsDeleted",
+                       "CreatedById",
+                       "CreateDate",
+                       "LastModifiedById",
+                       "LastModifiedDate",
+                       "SystemModstamp",
+                       "Name"
+                     ]
+
+    StandardDateFields = ["CreateDate",
+                          "LastModifiedDate",
+                          "SystemModstamp"
+                         ]
     count = 0
 
     def __init__(self, name):
         self.Name = name
         self.fields = []
         SFObject.count  += 1
+        self.addIdField()
+        self.addNameField()
+        self.addVariousDateFields()
+        #self.addVariousReferenceFields()
+
+    def addIdField(self) :
+        idField = CustomField('Id');
+        idField.addDetail('label', 'Salesforce Identifier')
+        idField.addDetail('type', 'ID')
+        self.addField(idField)
+
+    def addNameField(self) :
+        nameField = CustomField('Name');
+        nameField.addDetail('label', 'Name')
+        nameField.addDetail('type', 'Text')
+        self.addField(nameField)
+
+    def addVariousDateFields(self) :
+        for df in SFObject.StandardDateFields :
+            dateField = CustomField(df)
+            dateField.addDetail('label', df)
+            dateField.addDetail('type', 'Date')
+            self.addField(dateField)
 
     def addField(self, cfield):
         self.fields.append(cfield)
@@ -80,6 +121,7 @@ class SFObject:
         print "Object name : ", self.Name
         for cf in self.fields :
             cf.display()
+
 
     #print the object class
     def dumpJavaClass(self, dir) :
@@ -96,13 +138,16 @@ class SFObject:
 
         classString = "\npublic class " + self.Name + "\t extends SalesForceObject {"
 
-
-
         oc.write(classString)
         oc.write("\n\t//")
         oc.write("\n\t//this is body of class")
         oc.write("\n\t//")
         oc.write("\n\n")
+
+        oc.write("\n\t// Custom fields")
+        oc.write("\n\t//")
+        oc.write("\n\n")
+
         for cf in self.fields :
             memberString = cf.dumpJavaMember()
             #print 'memberstring = :',memberString,':'
