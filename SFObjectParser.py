@@ -190,7 +190,7 @@ class SFObject:
 
         oc.write("//This is automated geneerated file!! \n\n")
 
-        classString = "\npublic class " + self.Name + "\t extends SalesForceObject {"
+        classString = "\npublic class " + self.Name + "\t extends sObject {"
 
         oc.write(classString)
         oc.write("\n\t//")
