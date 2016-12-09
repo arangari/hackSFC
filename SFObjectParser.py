@@ -4,12 +4,27 @@
 import xml.etree.ElementTree as ET
 import sys
 import os
+import pprint
 from os.path import isfile, join
 
 class CustomField:
     def __init__(self, name):
         self.FieldName = name
         self.details = {}
+
+    def isLookupField(self):
+        myType = self.details.get('type')
+        if(myType == 'Lookup') :
+            return True;
+        return False;
+
+    def lookupParent(self) :
+        if(self.isLookupField()) :
+            parentClass = self.details.get('referenceTo')
+            relationShipName = self.details.get('relationshipName')
+            return {"parent": parentClass, "relation" : relationShipName}
+
+
 
     def setDescription(self, descr):
         self.Description = descr
@@ -18,24 +33,30 @@ class CustomField:
         self.details.update({key:value})
 
     def display(self):
-
+        isRelationShip = self.details.get('isRelationShip', 'not-present')
         myType = self.details.get('type')
-        print "display:\t", myType,  " " , self.FieldName
+        #print "display:\t", myType,  " " , self.FieldName , " isRelationShip:" , isRelationShip
         #print "Description = ", self.Description
         #for key, value in self.details.iteritems() :
         #    print "Key = " , key , "\tValue ", value
 
-    def dumpJavaMember(self):
+    def dumpSimpleMember(self):
+        #print 'dumpSimpleMember(): ', self.FieldName
         type = self.details.get('type', 'not-present')
         label = self.details.get('label', 'not-present')
         #memberString = "\t// " + self.Description
         memberString = "\t// " + label
         memberString += "\n\t"
+
         if(type == 'not-present') :
             print 'type is not present for ', self.FieldName
             return ""
 
         if(type == 'Text') :
+            memberString += "String " + self.FieldName + ";"
+            return memberString
+
+        if(type == 'Picklist') :
             memberString += "String " + self.FieldName + ";"
             return memberString
 
@@ -53,20 +74,37 @@ class CustomField:
 
         if(type == 'Number') :
             memberString  += "double " + self.FieldName + ";"
-            return memberString;
+            return memberString
 
         if(type == 'ID') :
             memberString  += "ID " + self.FieldName + ";"
-            return memberString;
+            return memberString
+
+        if(type == 'Lookup') :
+            referenceClass =  self.details.get('referenceTo', 'not-present')
+            memberString += referenceClass + " " + self.FieldName + ";"
+            return memberString
 
         return ""
-        #if(type == 'Lookup') :
-        #    print 'lookup not supported yet'
-        #    return ""
 
-        #if(type == 'Picklist') :
-        #    print 'Picklist not supported yet'
-        #    return ""
+    def dumpRelationShipMember(self) :
+        #print 'dumpRelationShipMember(): ', self.FieldName
+        type = self.details.get('type', 'not-present')
+        label = self.details.get('label', 'not-present')
+        #memberString = "\t// " + self.Description
+        memberString = "\t// " + label
+        memberString += "\n\t"
+
+        listStr = 'List<' + type + '>'
+        memberString += listStr + " " + self.FieldName + ";"
+        return memberString
+
+    def dumpJavaMember(self) :
+        isRelationShip = self.details.get('isRelationShip', 'not-present')
+        if(isRelationShip == 'true') :
+            return self.dumpRelationShipMember()
+        else :
+            return self.dumpSimpleMember()
 
 class SFObject:
 
@@ -89,11 +127,15 @@ class SFObject:
     def __init__(self, name):
         self.Name = name
         self.fields = []
+        self.lookupFields = []
         SFObject.count  += 1
         self.addIdField()
         self.addNameField()
         self.addVariousDateFields()
         #self.addVariousReferenceFields()
+
+    def objectName(self) :
+        return self.Name
 
     def addIdField(self) :
         idField = CustomField('Id');
@@ -107,6 +149,17 @@ class SFObject:
         nameField.addDetail('type', 'Text')
         self.addField(nameField)
 
+    def addRelationListField(self, childType, relationShipName) :
+        #print 'adding relationship to ', self.Name, ' relationshipname = ', relationShipName , ' childtype = ', childType
+
+        fName = relationShipName + '__r'
+        relationField = CustomField(fName);
+        relationField.addDetail('label', fName)
+        relationField.addDetail('type', childType)
+        relationField.addDetail('isRelationShip', 'true')
+        self.addField(relationField)
+
+
     def addVariousDateFields(self) :
         for df in SFObject.StandardDateFields :
             dateField = CustomField(df)
@@ -116,6 +169,11 @@ class SFObject:
 
     def addField(self, cfield):
         self.fields.append(cfield)
+        if(cfield.isLookupField()) :
+            self.lookupFields.append(cfield)
+
+    def getLookupFields(self):
+        return self.lookupFields
 
     def display(self):
         print "Object name : ", self.Name
@@ -127,7 +185,7 @@ class SFObject:
     def dumpJavaClass(self, dir) :
         ocName = self.Name + '.cls'
         ocPath = os.path.join(dir, ocName)
-        print 'ocPath = ', ocPath
+        #print 'ocPath = ', ocPath
         oc = open(ocPath, "w")
 
         oc.write("//This is automated geneerated file!! \n\n")
@@ -175,15 +233,23 @@ def getParsedObject(oroot, objectName) :
 
         #get the externalId flag
         externalId = fields.find('customObject:externalId', ns).text
+        cfield.addDetail('externalId', externalId)
 
         #get the label
         label = fields.find('customObject:label', ns).text
+        cfield.addDetail('label', label)
 
         mytype = fields.find('customObject:type', ns).text
-
-        cfield.addDetail('label', label)
         cfield.addDetail('type', mytype)
-        cfield.addDetail('externalId', externalId)
+
+        if(mytype == 'Lookup') :
+            referenceClass = fields.find('customObject:referenceTo', ns).text
+            relationshipName = fields.find('customObject:relationshipName', ns).text
+            #relationshipLabel = fields.find('customObject:relationshipLabel', ns).text
+            cfield.addDetail('referenceTo', referenceClass)
+            cfield.addDetail('relationshipName', relationshipName)
+            #cfield.addDetail('relationshipLabel', relationshipLabel)
+
 
         #print 'custom field is :'
         #cfield.display()
@@ -193,8 +259,42 @@ def getParsedObject(oroot, objectName) :
     return object
 
 
+def populateParentChildObjectMap(objectList) :
+
+    parentChildObjectMap = {}
+
+    for object in objectList :
+        objectName = object.objectName()
+        lookupFields = object.getLookupFields()
+
+
+        for lField in lookupFields :
+            map = lField.lookupParent()
+            parentC = map.get("parent")
+            relationShipName = map.get("relation")
+
+            #print 'populateParentChildObjectMap():  objectName= ',objectName , 'parentC= ', parentC, 'relationShipName= ', relationShipName
+
+            if(parentChildObjectMap.has_key(parentC)) :
+                relationShipMap = parentChildObjectMap.get(parentC)
+                relationShipMap.update({objectName : relationShipName})
+            else :
+                relationShipMap = {objectName : relationShipName}
+                parentChildObjectMap.update({parentC:relationShipMap})
+
+
+    #pp = pprint.PrettyPrinter(indent=2)
+    #pp.pprint(parentChildObjectMap)
+
+    return parentChildObjectMap
+
+
+
 
 def createPoJoForSFObject(objDir, targetDir):
+
+    objectList = []
+
 
     print 'Target directory is: ', targetDir
     print 'Object directory is: ', objDir
@@ -202,24 +302,65 @@ def createPoJoForSFObject(objDir, targetDir):
     files = os.listdir(objDir)
 
     for ff in files :
-        print 'ff = ', ff
+        #print 'ff = ', ff
         objectName = ff.replace('.object', '')
-        print 'objectName = ', objectName
+        #print 'objectName = ', objectName
         fullff =  os.path.join(objDir, ff)
-        print 'fullff = ', fullff
+        #print 'fullff = ', fullff
         tree = ET.parse(fullff)
         root = tree.getroot()
         object =  getParsedObject(root, objectName)
+        objectList.append(object)
+        #object.display()
+        #object.dumpJavaClass(targetDir)
+
+    #find all the objects which refer to each other
+
+    parentChildObjectMap1 = populateParentChildObjectMap(objectList)
+    pp = pprint.PrettyPrinter(indent=2)
+    #pp.pprint(parentChildObjectMap1)
+
+    objectNameMap = {}
+    for obj in objectList :
+        objectNameMap.update({obj.objectName():obj})
+
+    for objName in parentChildObjectMap1.keys() :
+        if(objectNameMap.has_key(objName) == False) :
+            object1 = SFObject(objName)
+            objectNameMap.update({objName:object1})
+
+    #pp.pprint(objectNameMap)
+
+    for parentName in parentChildObjectMap1.keys() :
+        relations = parentChildObjectMap1.get(parentName)
+        parentObj = objectNameMap.get(parentName)
+
+        numRelationShips = 0
+        for childType in relations.keys() :
+            numRelationShips += 1
+            relationShipName = relations.get(childType)
+            parentObj.addRelationListField(childType, relationShipName)
+
+
+    print "creating java classes..."
+    for objName in objectNameMap.keys() :
+        object = objectNameMap.get(objName)
         #object.display()
         object.dumpJavaClass(targetDir)
 
 
+
+
+
 objDir = sys.argv[1]
 targetDir = sys.argv[2]
-#ffname = os.path.join(objDir, 'fname.cls')
-#print 'ffname = ', ffname
-
 createPoJoForSFObject(objDir, targetDir)
+
+
+
+
+
+
 
 
 
