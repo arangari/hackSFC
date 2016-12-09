@@ -132,10 +132,6 @@ class SFObject:
 
         oc.write("//This is automated geneerated file!! \n\n")
 
-        #this is added to handle date declaration
-        oc.write("\nimport java.util.Date;")
-        oc.write("\n")
-
         classString = "\npublic class " + self.Name + "\t extends SalesForceObject {"
 
         oc.write(classString)
@@ -209,7 +205,7 @@ def createPoJoForSFObject(objDir, targetDir):
         print 'ff = ', ff
         objectName = ff.replace('.object', '')
         print 'objectName = ', objectName
-        fullff = objDir + '/' + ff
+        fullff =  os.path.join(objDir, ff)
         print 'fullff = ', fullff
         tree = ET.parse(fullff)
         root = tree.getroot()
