@@ -18,13 +18,15 @@ def modify_System_Lib(filename, folder):
     apex_content = apex_content.replace('System.assert', 'assert')
     apex_content = apex_content.replace('\'','\"')
     apex_content = apex_content.replace('global', 'public')
+    apex_content = apex_content.replace('override', '')
+    apex_content = apex_content.replace('instanceOf', 'instanceof')
     apex_content = apex_content.replace('database', 'Database')
     apex_content = apex_content.replace('logginglevel.error', 'LoggingLevel.ERROR')
     apex_content = apex_content.replace('Interface', 'interface')
     apex_content = apex_content.replace('virtual', '')
     apex_content = apex_content.replace('with', '')
     apex_content = apex_content.replace('sharing', '')
-    apex_content = apex_content.replace('PageReference', 'void')
+    #apex_content = apex_content.replace('PageReference', 'void')
     apex_content = apex_content.replace('testMethod', '')
     #apex_content = apex_content.replace('{get; set;}', ';')
     apex_content = apex_content.replace('new List', 'new ArrayList')
@@ -37,7 +39,7 @@ def modify_System_Lib(filename, folder):
     apex_content = apex_content.replace('getStackTraceString','getStackTrace');
     apex_content = apex_content.replace('getLineNumber', 'getStackTrace');
     apex_content = apex_content.replace('getTypeName', 'getStackTrace');
-    apex_content = re.sub("\{\s*get\s*;\s*set\s*;\}", "##replace##", apex_content)
+    apex_content = re.sub("\{\s*get\s*;\s*set\s*;\}", ";", apex_content)
     fw = open(folder + '/' + filename, 'w')
     fw.write('import java.util.*;\n')
     fw.write(apex_content)

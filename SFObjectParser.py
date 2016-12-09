@@ -106,7 +106,7 @@ class CustomField:
             #also the __r for accessign parent variables
             parentRef = self.FieldName.replace('__c', '__r')
             memberString += "\n"
-            memberString += "\n\t" + referenceClass + " " + parentRef
+            memberString += "\n\t" + referenceClass + " " + parentRef + ";"
 
             return memberString
 
@@ -118,7 +118,7 @@ class CustomField:
             #also the __r for accessign parent variables
             parentRef = self.FieldName.replace('__c', '__r')
             memberString += "\n"
-            memberString += "\n\t" + referenceClass + " " + parentRef
+            memberString += "\n\t" + referenceClass + " " + parentRef + ";"
             return memberString
 
         return ""
