@@ -100,12 +100,25 @@ class CustomField:
 
         if(type == 'Lookup') :
             referenceClass =  self.details.get('referenceTo', 'not-present')
-            memberString += referenceClass + " " + self.FieldName + ";"
+            memberString += "// reference to " + referenceClass
+            memberString += "\n\tID " + self.FieldName + ";"
+
+            #also the __r for accessign parent variables
+            parentRef = self.FieldName.replace('__c', '__r')
+            memberString += "\n"
+            memberString += "\n\t" + referenceClass + " " + parentRef
+
             return memberString
 
         if(type == 'MasterDetail') :
             referenceClass =  self.details.get('referenceTo', 'not-present')
-            memberString += referenceClass + " " + self.FieldName + ";"
+            memberString += "// reference to " + referenceClass
+            memberString += "\n\tID " + self.FieldName + ";"
+
+            #also the __r for accessign parent variables
+            parentRef = self.FieldName.replace('__c', '__r')
+            memberString += "\n"
+            memberString += "\n\t" + referenceClass + " " + parentRef
             return memberString
 
         return ""
