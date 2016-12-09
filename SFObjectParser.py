@@ -18,11 +18,25 @@ class CustomField:
             return True;
         return False;
 
+    def isMasterDetailField(self):
+        myType = self.details.get('type')
+        if(myType == 'MasterDetail') :
+            return True;
+        return False;
+
     def lookupParent(self) :
         if(self.isLookupField()) :
             parentClass = self.details.get('referenceTo')
             relationShipName = self.details.get('relationshipName')
             return {"parent": parentClass, "relation" : relationShipName}
+
+    def masterDetailParent(self) :
+        if(self.isMasterDetailField()) :
+            parentClass = self.details.get('referenceTo')
+            relationShipName = self.details.get('relationshipName')
+            return {"parent": parentClass, "relation" : relationShipName}
+
+
 
 
 
@@ -56,6 +70,10 @@ class CustomField:
             memberString += "String " + self.FieldName + ";"
             return memberString
 
+        if(type == 'LongTextArea') :
+            memberString += "String " + self.FieldName + ";"
+            return memberString
+
         if(type == 'Picklist') :
             memberString += "String " + self.FieldName + ";"
             return memberString
@@ -81,6 +99,11 @@ class CustomField:
             return memberString
 
         if(type == 'Lookup') :
+            referenceClass =  self.details.get('referenceTo', 'not-present')
+            memberString += referenceClass + " " + self.FieldName + ";"
+            return memberString
+
+        if(type == 'MasterDetail') :
             referenceClass =  self.details.get('referenceTo', 'not-present')
             memberString += referenceClass + " " + self.FieldName + ";"
             return memberString
@@ -128,6 +151,7 @@ class SFObject:
         self.Name = name
         self.fields = []
         self.lookupFields = []
+        self.masterDetailFields = []
         SFObject.count  += 1
         self.addIdField()
         self.addNameField()
@@ -171,9 +195,14 @@ class SFObject:
         self.fields.append(cfield)
         if(cfield.isLookupField()) :
             self.lookupFields.append(cfield)
+        if(cfield.isMasterDetailField()) :
+            self.masterDetailFields.append(cfield)
 
     def getLookupFields(self):
         return self.lookupFields
+
+    def getMasterDetailFields(self):
+        return self.masterDetailFields
 
     def display(self):
         print "Object name : ", self.Name
@@ -242,7 +271,7 @@ def getParsedObject(oroot, objectName) :
         mytype = fields.find('customObject:type', ns).text
         cfield.addDetail('type', mytype)
 
-        if(mytype == 'Lookup') :
+        if(mytype == 'Lookup' or mytype == 'MasterDetail') :
             referenceClass = fields.find('customObject:referenceTo', ns).text
             relationshipName = fields.find('customObject:relationshipName', ns).text
             #relationshipLabel = fields.find('customObject:relationshipLabel', ns).text
@@ -258,6 +287,27 @@ def getParsedObject(oroot, objectName) :
 
     return object
 
+def updateRelationShip(parentmap, objectName, parentChildObjectMap) :
+    parentC = parentmap.get("parent")
+    relationShipName = parentmap.get("relation")
+
+    #print 'populateParentChildObjectMap():  objectName= ',objectName , 'parentC= ', parentC, 'relationShipName= ', relationShipName
+
+    if(parentChildObjectMap.has_key(parentC)) :
+        relationShipMap = parentChildObjectMap.get(parentC)
+
+        if(relationShipMap.has_key(objectName)) :
+            relationShipList = relationShipMap.get(objectName)
+            relationShipList.append(relationShipName)
+        else :
+            relationShipList = [relationShipName]
+            relationShipMap.update({objectName : relationShipList})
+    else :
+        relationShipList = [relationShipName]
+
+        relationShipMap = {objectName : relationShipList}
+        parentChildObjectMap.update({parentC:relationShipMap})
+
 
 def populateParentChildObjectMap(objectList) :
 
@@ -265,22 +315,16 @@ def populateParentChildObjectMap(objectList) :
 
     for object in objectList :
         objectName = object.objectName()
+
         lookupFields = object.getLookupFields()
-
-
         for lField in lookupFields :
             map = lField.lookupParent()
-            parentC = map.get("parent")
-            relationShipName = map.get("relation")
+            updateRelationShip(map, objectName, parentChildObjectMap)
 
-            #print 'populateParentChildObjectMap():  objectName= ',objectName , 'parentC= ', parentC, 'relationShipName= ', relationShipName
-
-            if(parentChildObjectMap.has_key(parentC)) :
-                relationShipMap = parentChildObjectMap.get(parentC)
-                relationShipMap.update({objectName : relationShipName})
-            else :
-                relationShipMap = {objectName : relationShipName}
-                parentChildObjectMap.update({parentC:relationShipMap})
+        masterDetailFields = object.getMasterDetailFields()
+        for lField in masterDetailFields :
+            map = lField.masterDetailParent()
+            updateRelationShip(map, objectName, parentChildObjectMap)
 
 
     #pp = pprint.PrettyPrinter(indent=2)
@@ -338,8 +382,9 @@ def createPoJoForSFObject(objDir, targetDir):
         numRelationShips = 0
         for childType in relations.keys() :
             numRelationShips += 1
-            relationShipName = relations.get(childType)
-            parentObj.addRelationListField(childType, relationShipName)
+            relationShipList = relations.get(childType)
+            for relationShipName in relationShipList :
+                parentObj.addRelationListField(childType, relationShipName)
 
 
     print "creating java classes..."
