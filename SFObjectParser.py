@@ -126,7 +126,7 @@ class SFObject:
     #print the object class
     def dumpJavaClass(self, dir) :
         ocName = self.Name + '.cls'
-        ocPath = dir + '/' + ocName
+        ocPath = os.path.join(dir, ocName)
         print 'ocPath = ', ocPath
         oc = open(ocPath, "w")
 
@@ -220,7 +220,11 @@ def createPoJoForSFObject(objDir, targetDir):
 
 objDir = sys.argv[1]
 targetDir = sys.argv[2]
+#ffname = os.path.join(objDir, 'fname.cls')
+#print 'ffname = ', ffname
+
 createPoJoForSFObject(objDir, targetDir)
+
 
 
 
