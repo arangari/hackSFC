@@ -352,9 +352,9 @@ def createPoJoForSFObject(objDir, targetDir):
 
 
 
-objDir = sys.argv[1]
-targetDir = sys.argv[2]
-createPoJoForSFObject(objDir, targetDir)
+#objDir = sys.argv[1]
+#targetDir = sys.argv[2]
+#createPoJoForSFObject(objDir, targetDir)
 
 
 
