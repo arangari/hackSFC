@@ -63,7 +63,8 @@ def main(argv):
 
     # call javac compiler
 	cmd = "javac "+workingDir+"\*.java"
-	proc = subprocess.Popen(cmd, shell=True)
+	proc = subprocess.call(cmd, shell=True)
+#subprocess.subprocess.Popen(cmd, shell=True)
 	
 
 if __name__ == "__main__":
