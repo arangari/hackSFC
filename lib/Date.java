@@ -44,6 +44,18 @@ public class Date {
 	public Integer monthsBetween(Date secondDate){
 		return 1;
 	}
+	
+	public Integer day(){
+		return 1;
+	}
+	
+	public Integer year(){
+		return 1;
+	}
+	
+	public Integer month(){
+		return 1;
+	}
 
 	/*newInstance(year, month, date)
 Constructs a Date from Integer representations of the year, month (1=Jan), and day.

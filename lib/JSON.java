@@ -1,6 +1,6 @@
 import java.lang.*;
 public class JSON {
-    public static object deserialize(String str, Type t) {
+    public static Object deserialize(String str, Type t) {
         return null;
     }
 }
