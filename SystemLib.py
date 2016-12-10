@@ -16,6 +16,7 @@ def modify_System_Lib(filename, folder):
     apex_content = apex_content.replace('System.debug', 'MfiflexSystem.Debug')
     apex_content = apex_content.replace('system.debug', 'MfiflexSystem.Debug')
     apex_content = apex_content.replace('System.assert', 'assert')
+    apex_content = apex_content.replace('\"','\\"')
     apex_content = apex_content.replace('\'','\"')
     apex_content = apex_content.replace('global', 'public')
     apex_content = apex_content.replace('override', '')
@@ -30,16 +31,22 @@ def modify_System_Lib(filename, folder):
     apex_content = apex_content.replace('testMethod', '')
     #apex_content = apex_content.replace('{get; set;}', ';')
     apex_content = apex_content.replace('new List', 'new ArrayList')
-    apex_content = apex_content.replace('[S','null/*');
-    apex_content = apex_content.replace('[s', 'null/*');
-    apex_content = apex_content.replace('];','*/;');
-    apex_content = apex_content.replace('0*/;', '0];');
-    apex_content = apex_content.replace('10];', '*/;');
+    soql_regex1 = r"(\s*\[[\w\s,.=:'\(\)\"\d+]*\sFROM\s([\w\d_]*)[\w\s,.=:'\(\)\"\d+]*\])"
+    #soql_regex2 = r" new \2 ();\n/* \1 */"
+    soql_regex2 = r" null\n/* \1 */"
+
+    apex_content = re.sub(soql_regex1, soql_regex2, apex_content, flags=re.IGNORECASE)
+    #apex_content = apex_content.replace('[S','null/*');
+    #apex_content = apex_content.replace('[s', 'null/*');
+    #apex_content = apex_content.replace('];','*/;');
+    #apex_content = apex_content.replace('0*/;', '0];');
+    #apex_content = apex_content.replace('10];', '*/;');
     apex_content = apex_content.replace('@future', '//@future');
     apex_content = apex_content.replace('getStackTraceString','getStackTrace');
     apex_content = apex_content.replace('getLineNumber', 'getStackTrace');
     apex_content = apex_content.replace('getTypeName', 'getStackTrace');
-    apex_content = re.sub("\{\s*get\s*;\s*set\s*;\}", ";", apex_content)
+    apex_content = re.sub("\{[\w\s]*get\s*;[\w\s]*set\s*;\s*\}", ";", apex_content)
+
     fw = open(folder + '/' + filename, 'w')
     fw.write('import java.util.*;\n')
     fw.write(apex_content)
